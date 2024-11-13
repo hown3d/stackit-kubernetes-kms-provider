@@ -1,0 +1,22 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  extraMounts:
+  - hostPath: ./kind-patches
+    containerPath: /patches
+  - hostPath: ./
+    containerPath: /var/encryptionconfig
+  - hostPath: stackit/
+    containerPath: /.stackit
+      
+kubeadmConfigPatches:
+- |
+  kind: InitConfiguration
+  patches:
+    directory: /patches
+- |
+  kind: ClusterConfiguration
+  apiServer:
+    extraArgs:
+      encryption-provider-config: "/var/encryptionconfig/encryptionconfig.yaml"
