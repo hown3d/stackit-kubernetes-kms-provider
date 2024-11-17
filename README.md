@@ -1,6 +1,6 @@
 # STACKIT Kubernetes KMS Plugin
 
-This repo contains a KMS Plugin for Kubernetes using STACKIT KMS.
+This repo contains a [Kubernetes KMSv2](https://github.com/kubernetes/kms/tree/release-1.31?tab=readme-ov-file) Plugin for Kubernetes using STACKIT KMS.
 
 ```
 Usage of kubernetes-kms-plugin:
