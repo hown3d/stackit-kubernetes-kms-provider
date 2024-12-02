@@ -89,7 +89,7 @@ type EncryptRequest struct {
 	Data      []byte
 }
 
-func (a *APIClient) Encrypt(ctx context.Context, r EncryptRequest) (io.ReadCloser, error) {
+func (a *APIClient) Encrypt(ctx context.Context, r EncryptRequest) (io.Reader, error) {
 	b := new(bytes.Buffer)
 	encoder := base64.NewEncoder(base64.RawStdEncoding, b)
 	_, err := io.Copy(encoder, bytes.NewReader(r.Data))
@@ -100,11 +100,11 @@ func (a *APIClient) Encrypt(ctx context.Context, r EncryptRequest) (io.ReadClose
 	if err != nil {
 		return nil, err
 	}
-	respBody, err := a.doRequest(ctx, "encrypt", r.ProjectID, r.KeyRingID, r.KeyID, r.Version, encodedData)
+	respData, err := a.doRequest(ctx, "encrypt", r.ProjectID, r.KeyRingID, r.KeyID, r.Version, encodedData)
 	if err != nil {
 		return nil, err
 	}
-	return respBody, nil
+	return respData, nil
 }
 
 type DecryptRequest struct {
@@ -116,15 +116,15 @@ type DecryptRequest struct {
 }
 
 func (a *APIClient) Decrypt(ctx context.Context, r DecryptRequest) (io.Reader, error) {
-	respBody, err := a.doRequest(ctx, "decrypt", r.ProjectID, r.KeyRingID, r.KeyID, r.Version, r.Data)
+	respData, err := a.doRequest(ctx, "decrypt", r.ProjectID, r.KeyRingID, r.KeyID, r.Version, r.Data)
 	if err != nil {
 		return nil, err
 	}
-	decoder := base64.NewDecoder(base64.RawStdEncoding, respBody)
+	decoder := base64.NewDecoder(base64.RawStdEncoding, respData)
 	return decoder, nil
 }
 
-func (a *APIClient) doRequest(ctx context.Context, method, projectId, keyRingId, keyId, version string, data []byte) (io.ReadCloser, error) {
+func (a *APIClient) doRequest(ctx context.Context, method, projectId, keyRingId, keyId, version string, data []byte) (io.Reader, error) {
 	basePath, err := a.cfg.ServerURL(0, map[string]string{})
 	if err != nil {
 		return nil, err
@@ -153,6 +153,7 @@ func (a *APIClient) doRequest(ctx context.Context, method, projectId, keyRingId,
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		respBody, err := io.ReadAll(resp.Body)
 		if err != nil {
@@ -160,5 +161,13 @@ func (a *APIClient) doRequest(ctx context.Context, method, projectId, keyRingId,
 		}
 		return nil, fmt.Errorf("encryption was not successful: %s", respBody)
 	}
-	return resp.Body, nil
+	type respBody struct {
+		Data []byte `json:"data"`
+	}
+	b := new(respBody)
+	err = json.NewDecoder(resp.Body).Decode(b)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewReader(b.Data), nil
 }

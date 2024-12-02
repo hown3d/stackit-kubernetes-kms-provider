@@ -24,8 +24,6 @@ func New(key string, address string, timeout time.Duration) (*kmsservice.GRPCSer
 	return kmsservice.NewGRPCService(address, timeout, kms), nil
 }
 
-type KmsAPI interface{}
-
 type KMS struct {
 	apiClient *stackitkms.APIClient
 	key       string
@@ -74,7 +72,6 @@ func (k *KMS) Encrypt(ctx context.Context, uid string, data []byte) (*kmsservice
 		slog.Error("encrypting with kms", "err", err)
 		return nil, err
 	}
-	defer enc.Close()
 	cipher, err := io.ReadAll(enc)
 	if err != nil {
 		slog.Error("reading encryp response", "err", err)
