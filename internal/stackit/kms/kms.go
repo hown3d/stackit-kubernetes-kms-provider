@@ -76,10 +76,9 @@ func NewAPIClient(opts ...config.ConfigurationOption) (*APIClient, error) {
 	}
 
 	cfg.HTTPClient.Transport = roundTripper
-
-	c := &APIClient{}
-	c.cfg = cfg
-	return c, nil
+	return &APIClient{
+		cfg: cfg,
+	}, nil
 }
 
 type EncryptRequest struct {
