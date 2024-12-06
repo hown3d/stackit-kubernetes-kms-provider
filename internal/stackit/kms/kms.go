@@ -159,7 +159,7 @@ func (a *APIClient) doRequest(ctx context.Context, method, projectId, keyRingId,
 		if err != nil {
 			return nil, err
 		}
-		return nil, fmt.Errorf("encryption was not successful: %s", respBody)
+		return nil, fmt.Errorf("%s not successful: %s", method, respBody)
 	}
 	type respBody struct {
 		Data []byte `json:"data"`

@@ -21,7 +21,11 @@ const (
 var svc *KMS
 
 func TestMain(t *testing.M) {
-	server := httptest.NewServer(testkms.NewKMSHandler())
+	handler, err := testkms.NewKMSHandler(testKey)
+	if err != nil {
+		log.Fatalf("setup kms handler: %v", err)
+	}
+	server := httptest.NewServer(handler)
 	defer server.Close()
 
 	apiClient, err := kms.NewAPIClient(config.WithEndpoint(server.URL), config.WithoutAuthentication())
@@ -35,7 +39,7 @@ func TestMain(t *testing.M) {
 	os.Exit(t.Run())
 }
 
-func TestEncrypt(t *testing.T) {
+func TestKMSService(t *testing.T) {
 	resp, err := svc.Encrypt(context.Background(), "", []byte(plain))
 	if err != nil {
 		t.Fatalf("error encrypting: %s", err)
@@ -43,17 +47,15 @@ func TestEncrypt(t *testing.T) {
 	if resp.KeyID != testKey {
 		t.Fatalf("kmsservice returned different key. Want %s, got %s", testKey, resp.KeyID)
 	}
-	// TODO: Test encrypt, decrypt circle
-}
-
-func TestDecrypt(t *testing.T) {
 	req := &kmsservice.DecryptRequest{
 		KeyID:      testKey,
-		Ciphertext: []byte("ciphertext"),
+		Ciphertext: resp.Ciphertext,
 	}
-	// TODO: Test encrypt, decrypt circle
-	_, err := svc.Decrypt(context.Background(), "", req)
+	respPlain, err := svc.Decrypt(context.Background(), "", req)
 	if err != nil {
 		t.Fatalf("error encrypting: %s", err)
+	}
+	if string(respPlain) != plain {
+		t.Errorf("circle encrypt and decrypt resulted in different plaintexts. Got: %s, want: %s", respPlain, plain)
 	}
 }
