@@ -21,7 +21,7 @@ var (
 
 func main() {
 	flag.Parse()
-	s, err := service.New(*key, *listenAddr, *timeout)
+	s, err := service.New(*key, *region, *listenAddr, *timeout)
 	if err != nil {
 		slog.Error("creating service", "error", err)
 		os.Exit(1)

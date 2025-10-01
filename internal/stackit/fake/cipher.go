@@ -1,4 +1,4 @@
-package test
+package stackitfake
 
 import (
 	"crypto/aes"
@@ -15,22 +15,23 @@ type keystore struct {
 	keys map[string]cipher.Block
 }
 
-func newKeystore(keys []string) (*keystore, error) {
-	k := &keystore{
-		keys: make(map[string]cipher.Block, len(keys)),
+func newKeystore() (*keystore, error) {
+	return &keystore{
+		keys: map[string]cipher.Block{},
+	}, nil
+}
+
+func (s *keystore) addKey(key string) error {
+	aesKey := []byte(key)
+	if len(aesKey) > keysize {
+		aesKey = aesKey[:keysize]
 	}
-	for _, key := range keys {
-		aesKey := []byte(key)
-		if len(aesKey) > keysize {
-			aesKey = aesKey[:keysize]
-		}
-		aesCipher, err := aes.NewCipher(aesKey)
-		if err != nil {
-			return nil, err
-		}
-		k.keys[key] = aesCipher
+	aesCipher, err := aes.NewCipher(aesKey)
+	if err != nil {
+		return err
 	}
-	return k, nil
+	s.keys[key] = aesCipher
+	return nil
 }
 
 var errKeyNotFound error = errors.New("key not found")
@@ -64,7 +65,7 @@ func (s *keystore) decrypt(key string, ciphertext []byte) ([]byte, error) {
 	plain := make([]byte, len(ciphertext)-blockSize)
 
 	iv := ciphertext[:blockSize]
-	stream := cipher.NewCFBDecrypter(block, iv)
+	stream := cipher.NewCTR(block, iv)
 	stream.XORKeyStream(plain, ciphertext[blockSize:])
 	return plain, nil
 }

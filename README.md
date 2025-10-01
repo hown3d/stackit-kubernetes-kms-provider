@@ -14,13 +14,15 @@ Usage of kubernetes-kms-plugin:
         timeout for the grpc server (default 10s)
 ```
 
-## Testing locally
+## Testing locally with kind
 
 1. Place your STACKIT creds in `test/stackit/credentials.json`
-1. Create a keyring and key in your STACKIT KMS \
-    You can use the script provided in `scripts/testkey.sh`
-2. Adjust the kube-apiserver patch with your **projectID**, **keyringID** and **keyID**.
+   1. Create ServiceAccount
+   2. Create ServiceAccount Key for ServiceAccount and download JSON
+   3. Grant access to ServiceAccount (`KMS Reader`)
+1. Create a keyring and key in your STACKIT KMS 
+2. Adjust the kube-apiserver patch (`test/kind-patches/kube-apiserver0.yaml`) with your **projectID**, **keyringID**, **keyID** and **version**.
 3. Build the image with `make image`
-4. Start your local kind cluster `make kind`
+4. Start your local kind cluster `make -j kind-up`
 5. If the control plane does not start, you can view the logs of the kmsplugin using `make stream-kms-plugin-logs`
 6. Verify that the secrets are encrypted: `kubectl exec -n kube-system etcd-kind-control-plane -- etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key  get /registry/secrets/default/{SECRETNAME} | hexdump -C`

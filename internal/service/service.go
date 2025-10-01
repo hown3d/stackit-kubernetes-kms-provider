@@ -3,30 +3,33 @@ package service
 import (
 	"context"
 	"fmt"
-	"io"
 	"log/slog"
+	"strconv"
 	"strings"
 	"time"
 
-	stackitkms "github.com/hown3d/kubernetes-kms-plugin/internal/stackit/kms"
+	"github.com/hown3d/kubernetes-kms-plugin/internal/stackit"
 	kmsservice "k8s.io/kms/pkg/service"
 )
 
-func New(key string, address string, timeout time.Duration) (*kmsservice.GRPCService, error) {
-	kmsClient, err := stackitkms.NewAPIClient()
+func New(key string, region string, address string, timeout time.Duration) (*kmsservice.GRPCService, error) {
+	kmsClient, err := stackit.NewKMSClient()
 	if err != nil {
 		return nil, err
 	}
+
 	kms := &KMS{
 		key:       key,
-		apiClient: kmsClient,
+		kmsClient: kmsClient,
+		region:    region,
 	}
 	return kmsservice.NewGRPCService(address, timeout, kms), nil
 }
 
 type KMS struct {
-	apiClient *stackitkms.APIClient
+	kmsClient stackit.KMSClient
 	key       string
+	region    string
 }
 
 // Decrypt implements service.Service.
@@ -37,19 +40,13 @@ func (k *KMS) Decrypt(ctx context.Context, uid string, req *kmsservice.DecryptRe
 		slog.Error("spliting key", "err", err)
 		return nil, err
 	}
-	apiReq := stackitkms.DecryptRequest{
-		ProjectID: projectId,
-		KeyRingID: keyRingId,
-		KeyID:     keyId,
-		Version:   keyVersion,
-		Data:      req.Ciphertext,
-	}
-	decrypted, err := k.apiClient.Decrypt(ctx, apiReq)
+
+	decrypted, err := k.kmsClient.Decrypt(ctx, projectId, k.region, keyRingId, keyId, keyVersion, req.Ciphertext)
 	if err != nil {
 		slog.Error("decrypting with kms", "err", err)
 		return nil, err
 	}
-	return io.ReadAll(decrypted)
+	return decrypted, nil
 }
 
 // Encrypt implements service.Service.
@@ -60,25 +57,14 @@ func (k *KMS) Encrypt(ctx context.Context, uid string, data []byte) (*kmsservice
 		slog.Error("spliting key", "err", err)
 		return nil, err
 	}
-	apiReq := stackitkms.EncryptRequest{
-		ProjectID: projectId,
-		KeyRingID: keyRingId,
-		KeyID:     keyId,
-		Version:   keyVersion,
-		Data:      data,
-	}
-	enc, err := k.apiClient.Encrypt(ctx, apiReq)
+
+	encrypted, err := k.kmsClient.Encrypt(ctx, projectId, k.region, keyRingId, keyId, keyVersion, data)
 	if err != nil {
 		slog.Error("encrypting with kms", "err", err)
 		return nil, err
 	}
-	cipher, err := io.ReadAll(enc)
-	if err != nil {
-		slog.Error("reading encryp response", "err", err)
-		return nil, err
-	}
 	return &kmsservice.EncryptResponse{
-		Ciphertext: cipher,
+		Ciphertext: encrypted,
 		KeyID:      k.key,
 	}, nil
 }
@@ -92,10 +78,15 @@ func (k *KMS) Status(ctx context.Context) (*kmsservice.StatusResponse, error) {
 	}, nil
 }
 
-func splitKey(key string) (projectId, keyRingId, keyId, keyVersion string, err error) {
+func splitKey(key string) (projectId, keyRingId, keyId string, keyVersion int64, err error) {
 	splits := strings.Split(key, "/")
 	if len(splits) != 4 {
-		return "", "", "", "", fmt.Errorf("key is in unknown format: %s", key)
+		return "", "", "", 0, fmt.Errorf("key is in unknown format: %s", key)
 	}
-	return splits[0], splits[1], splits[2], splits[3], nil
+
+	version, err := strconv.Atoi(splits[3])
+	if err != nil {
+		return "", "", "", 0, err
+	}
+	return splits[0], splits[1], splits[2], int64(version), nil
 }

@@ -1,4 +1,4 @@
-package test
+package stackitfake
 
 import (
 	"testing"
@@ -30,9 +30,15 @@ func Test_keystore(t *testing.T) {
 }
 
 func newTestKeystore() *keystore {
-	store, err := newKeystore(testKeys)
+	store, err := newKeystore()
 	if err != nil {
 		panic(err)
+	}
+	for i := range testKeys {
+		err = store.addKey(testKeys[i])
+		if err != nil {
+			panic(err)
+		}
 	}
 	return store
 }
