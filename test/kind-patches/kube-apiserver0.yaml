@@ -21,11 +21,11 @@ spec:
       - mountPath: /var/encryptionconfig
         name: encryptionconfig
   - name: kmsplugin
-    image: "local/stackitcloud/kubernetes-kms-plugin"
+    image: "ko.local/stackitcloud/kubernetes-kms-plugin"
     imagePullPolicy: Never
     args:
     # Adjust projectID, keyRingID, keyID and version here
-    #- "key=projectID/keyRingID/keyID/version"
+    #- "-key=projectID/keyRingID/keyID/version"
     securityContext:
       runAsUser: 0
       runAsGroup: 0

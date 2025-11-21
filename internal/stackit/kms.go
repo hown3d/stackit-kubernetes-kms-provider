@@ -27,10 +27,9 @@ func NewKMSClient() (*STACKITKMSClient, error) {
 }
 
 func (c *STACKITKMSClient) Encrypt(ctx context.Context, projectId, region, keyRingId, keyId string, keyVersion int64, data []byte) ([]byte, error) {
-	request := c.apiClient.Encrypt(ctx, projectId, region, keyRingId, keyId, keyVersion)
-	request = request.EncryptPayload(stackitkms.EncryptPayload{Data: &data})
-
-	encrypted, err := request.Execute()
+	encrypted, err := c.apiClient.
+		Encrypt(ctx, projectId, region, keyRingId, keyId, keyVersion).
+		EncryptPayload(stackitkms.EncryptPayload{Data: &data}).Execute()
 	if err != nil {
 		slog.Error("encrypting with kms", "err", err)
 		return nil, err
@@ -39,10 +38,9 @@ func (c *STACKITKMSClient) Encrypt(ctx context.Context, projectId, region, keyRi
 }
 
 func (c *STACKITKMSClient) Decrypt(ctx context.Context, projectId, region, keyRingId, keyId string, keyVersion int64, data []byte) ([]byte, error) {
-	request := c.apiClient.Decrypt(ctx, projectId, region, keyRingId, keyId, keyVersion)
-	request = request.DecryptPayload(stackitkms.DecryptPayload{Data: &data})
-
-	decrypted, err := request.Execute()
+	decrypted, err := c.apiClient.
+		Decrypt(ctx, projectId, region, keyRingId, keyId, keyVersion).
+		DecryptPayload(stackitkms.DecryptPayload{Data: &data}).Execute()
 	if err != nil {
 		slog.Error("decrypting with kms", "err", err)
 		return nil, err

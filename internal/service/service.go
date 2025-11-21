@@ -13,6 +13,12 @@ import (
 )
 
 func New(key string, region string, address string, timeout time.Duration) (*kmsservice.GRPCService, error) {
+	// Validate that key has valid syntax
+	_, _, _, _, err := splitKey(key)
+	if err != nil {
+		return nil, err
+	}
+
 	kmsClient, err := stackit.NewKMSClient()
 	if err != nil {
 		return nil, err

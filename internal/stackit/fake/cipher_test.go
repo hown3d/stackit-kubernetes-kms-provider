@@ -1,4 +1,4 @@
-package stackitfake
+package fake
 
 import (
 	"testing"

@@ -1,4 +1,4 @@
-package stackitfake
+package fake
 
 import (
 	"crypto/aes"
@@ -47,7 +47,7 @@ func (s *keystore) encrypt(key string, plain []byte) ([]byte, error) {
 	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
 		return nil, err
 	}
-	stream := cipher.NewCFBEncrypter(block, iv)
+	stream := cipher.NewCTR(block, iv)
 	stream.XORKeyStream(ciphertext[blockSize:], plain)
 	return ciphertext, nil
 }
