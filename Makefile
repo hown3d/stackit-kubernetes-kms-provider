@@ -14,7 +14,7 @@ stream-kms-plugin-logs:
 image:
 	KO_DOCKER_REPO=$(REGISTRY)/stackitcloud/kubernetes-kms-plugin ko build --bare --platform=linux/amd64,linux/arm64 --push=false --sbom=none .
 
-load-image:
+load-image: image
 	while ! kind get kubeconfig >/dev/null 2>&1; do \
       echo "kind not running..." ; \
       sleep 1; \
