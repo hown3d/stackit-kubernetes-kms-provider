@@ -3,38 +3,32 @@ package service
 import (
 	"context"
 	"log"
-	"net/http/httptest"
 	"os"
 	"testing"
 
-	"github.com/hown3d/kubernetes-kms-plugin/internal/stackit/kms"
-	testkms "github.com/hown3d/kubernetes-kms-plugin/internal/stackit/kms/test"
-	"github.com/stackitcloud/stackit-sdk-go/core/config"
+	stackitfake "github.com/hown3d/kubernetes-kms-plugin/internal/stackit/fake"
 	kmsservice "k8s.io/kms/pkg/service"
 )
 
 const (
-	testKey = "project/keyring/key/version"
+	testKey = "project-id/keyring/key/1"
 	plain   = "foo"
 )
 
 var svc *KMS
 
 func TestMain(t *testing.M) {
-	handler, err := testkms.NewKMSHandler(testKey)
+	kmsClient, err := stackitfake.NewKMSClient()
 	if err != nil {
 		log.Fatalf("setup kms handler: %v", err)
 	}
-	server := httptest.NewServer(handler)
-	defer server.Close()
-
-	apiClient, err := kms.NewAPIClient(config.WithEndpoint(server.URL), config.WithoutAuthentication())
+	err = kmsClient.CreateKey(testKey)
 	if err != nil {
-		log.Fatalf("creating kms apiclient: %s", err)
+		log.Fatalf("setup kms handler: %v", err)
 	}
 	svc = &KMS{
 		key:       testKey,
-		apiClient: apiClient,
+		kmsClient: kmsClient,
 	}
 	os.Exit(t.Run())
 }
